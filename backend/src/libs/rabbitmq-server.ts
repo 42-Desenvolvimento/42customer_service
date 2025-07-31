@@ -1,10 +1,10 @@
 /* eslint-disable no-useless-constructor */
-import { Connection, Channel, connect, Message } from "amqplib";
+import { ChannelModel, Channel, connect, Message } from "amqplib";
 import { logger } from "../utils/logger";
 import { sleepRandomTime } from "../utils/sleepRandomTime";
 
 export default class RabbitmqServer {
-  private conn: Connection;
+  private conn: ChannelModel;
 
   private channel: Channel;
 

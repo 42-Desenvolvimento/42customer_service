@@ -27,9 +27,9 @@
           v-if="$q.screen.gt.xs"
         >
           <q-img
-            src="/izing-logo_5_transparent.png"
+            :src="$q.dark.isActive ? '/AF_marca_42dev_RGB_16.png' : '/AF_marca_42dev_RGB_1.png'"
             spinner-color="primary"
-            style="height: 50px; width: 140px"
+            style="height: 55px; width: 140px"
           />
         </q-btn>
 
