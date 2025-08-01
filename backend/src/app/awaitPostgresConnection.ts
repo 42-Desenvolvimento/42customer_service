@@ -36,6 +36,7 @@ const waitForPostgresConnection = async function () {
       logger.info(
         "Falha ao conectar ao PostgreSQL. Tentando novamente em 5 segundos..."
       );
+      logger.info(error);
       // eslint-disable-next-line no-await-in-loop
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
