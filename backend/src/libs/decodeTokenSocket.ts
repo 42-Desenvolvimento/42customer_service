@@ -31,6 +31,10 @@ const decode = (token: string): Result => {
     }
   };
   try {
+    if (!token) {
+      // Don't log error for missing token, just return invalid
+      return validation;
+    }
     const decoded = verify(token, authConfig.secret);
     const { id, profile, tenantId } = decoded as TokenPayload;
     validation.isValid = true;
@@ -40,7 +44,10 @@ const decode = (token: string): Result => {
       tenantId
     };
   } catch (err) {
-    logger.error(err);
+    // Only log error if token was provided but is invalid
+    if (token) {
+      logger.error(err);
+    }
   }
   return validation;
 };
