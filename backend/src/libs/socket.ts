@@ -56,8 +56,9 @@ export const initIO = (httpServer: Server): SocketIO => {
         });
         socket.handshake.auth.user = user;
         next();
+      } else {
+        next(new Error("authentication error"));
       }
-      next(new Error("authentication error"));
     } catch (error) {
       logger.warn(`tokenInvalid: ${socket}`);
       socket.emit(`tokenInvalid:${socket.id}`);

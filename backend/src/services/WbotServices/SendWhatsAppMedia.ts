@@ -5,6 +5,7 @@ import GetTicketWbot from "../../helpers/GetTicketWbot";
 import Ticket from "../../models/Ticket";
 import UserMessagesLog from "../../models/UserMessagesLog";
 import { logger } from "../../utils/logger";
+import { StartWhatsAppSessionVerify } from "./StartWhatsAppSessionVerify";
 
 interface Request {
   media: Express.Multer.File;
@@ -48,7 +49,7 @@ const SendWhatsAppMedia = async ({
     return sendMessage;
   } catch (err) {
     logger.error(`SendWhatsAppMedia | Error: ${err}`);
-    // StartWhatsAppSessionVerify(ticket.whatsappId, err);
+    StartWhatsAppSessionVerify(ticket.whatsappId, err);
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
 };
