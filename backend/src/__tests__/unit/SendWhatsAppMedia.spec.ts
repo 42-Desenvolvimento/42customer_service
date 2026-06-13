@@ -16,7 +16,7 @@ jest.mock("whatsapp-web.js", () => ({
   }
 }));
 
-jest.mock("../../helpers/GetTicketWbot");
+jest.mock("../../helpers/GetTicketWbot", () => jest.fn());
 jest.mock("../../models/UserMessagesLog", () => ({
   create: jest.fn()
 }));

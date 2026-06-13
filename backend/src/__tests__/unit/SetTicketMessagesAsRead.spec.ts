@@ -8,9 +8,9 @@ import { StartWhatsAppSessionVerify } from "../../services/WbotServices/StartWha
 jest.mock("../../models/Message", () => ({
   update: jest.fn()
 }));
-jest.mock("../../helpers/GetTicketWbot");
-jest.mock("../../helpers/socketEmit");
-jest.mock("../../services/TicketServices/ShowTicketService");
+jest.mock("../../helpers/GetTicketWbot", () => jest.fn());
+jest.mock("../../helpers/socketEmit", () => jest.fn());
+jest.mock("../../services/TicketServices/ShowTicketService", () => jest.fn());
 jest.mock("../../services/WbotServices/StartWhatsAppSessionVerify", () => ({
   StartWhatsAppSessionVerify: jest.fn()
 }));
