@@ -1,39 +1,51 @@
-import { initWbot } from "../../libs/wbot";
+import { initWbot, removeWbot } from "../../libs/wbot";
 import Whatsapp from "../../models/Whatsapp";
 import { wbotMessageListener } from "./wbotMessageListener";
 import { getIO } from "../../libs/socket";
 import wbotMonitor from "./wbotMonitor";
 import { logger } from "../../utils/logger";
 
+const restartingSessions = new Set<number>();
+
+const shouldRestartSession = (error: unknown): boolean => {
+  const errorString = String(error).toLowerCase();
+
+  return (
+    errorString.includes("session closed") ||
+    errorString.includes("err_wapp_not_initialized") ||
+    errorString.includes("cannot read property 'sendseen' of undefined") ||
+    errorString.includes("cannot read properties of undefined (reading 'sendseen')")
+  );
+};
+
 export const StartWhatsAppSessionVerify = async (
   whatsappId: number,
-  error: string
+  error: unknown
 ): Promise<void> => {
-  const errorString = error.toString().toLowerCase();
-  const sessionClosed = "session closed";
-  const sessiondisconnected =
-    "TypeError: Cannot read property 'sendSeen' of undefined";
-  const WAPP_NOT_INIT = "ERR_WAPP_NOT_INITIALIZED".toLowerCase();
-  if (
-    errorString.indexOf(sessionClosed) !== -1 ||
-    errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
-    errorString.indexOf(sessiondisconnected) !== -1
-  ) {
+  if (!shouldRestartSession(error) || restartingSessions.has(whatsappId)) {
+    return;
+  }
+
+  restartingSessions.add(whatsappId);
+
+  try {
     const whatsapp = await Whatsapp.findByPk(whatsappId);
-    try {
-      if (whatsapp) {
-        await whatsapp.update({ status: "OPENING" });
-        const io = getIO();
-        io.emit(`${whatsapp?.tenantId}:whatsappSession`, {
-          action: "update",
-          session: whatsapp
-        });
-        const wbot = await initWbot(whatsapp);
-        wbotMessageListener(wbot);
-        wbotMonitor(wbot, whatsapp);
-      }
-    } catch (err) {
-      logger.error(err);
+
+    if (whatsapp) {
+      await whatsapp.update({ status: "OPENING" });
+      const io = getIO();
+      io.emit(`${whatsapp?.tenantId}:whatsappSession`, {
+        action: "update",
+        session: whatsapp
+      });
+      removeWbot(whatsapp.id);
+      const wbot = await initWbot(whatsapp);
+      wbotMessageListener(wbot);
+      wbotMonitor(wbot, whatsapp);
     }
+  } catch (err) {
+    logger.error(err);
+  } finally {
+    restartingSessions.delete(whatsappId);
   }
 };
