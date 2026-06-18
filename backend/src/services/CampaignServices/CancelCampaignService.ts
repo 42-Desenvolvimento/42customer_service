@@ -2,6 +2,7 @@ import BullQueues from "bull";
 import Campaign from "../../models/Campaign";
 import AppError from "../../errors/AppError";
 import CampaignContacts from "../../models/CampaignContacts";
+import { getQueueRedisConfig } from "../../libs/QueueConfig";
 
 interface Request {
   campaignId: string | number;
@@ -22,12 +23,7 @@ const CancelCampaignService = async ({
   // jobId: `campaginId_${campaign.id}_contact_${campaignContact.contactId}_id_${campaignContact.id}`,
   try {
     await BullQueues("SendMessageWhatsappCampaign", {
-      redis: {
-        port: Number(process.env.IO_REDIS_PORT),
-        host: process.env.IO_REDIS_SERVER,
-        db: Number(process.env.IO_REDIS_DB_SESSION) || 2,
-        password: process.env.IO_REDIS_PASSWORD || undefined
-      }
+      redis: getQueueRedisConfig()
     }).removeJobs(`campaginId_${campaign.id}*`);
 
     await CampaignContacts.update(

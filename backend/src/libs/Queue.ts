@@ -3,15 +3,11 @@
 import Queue from "bull";
 import QueueListeners from "./QueueListeners";
 import * as jobs from "../jobs/Index";
+import { getQueueRedisConfig } from "./QueueConfig";
 
 const queues = Object.values(jobs).map((job: any) => ({
   bull: new Queue(job.key, {
-    redis: {
-      host: process.env.IO_REDIS_SERVER,
-      port: +(process.env.IO_REDIS_PORT || "6379"),
-      password: process.env.IO_REDIS_PASSWORD || undefined,
-      db: 3
-    }
+    redis: getQueueRedisConfig()
   }),
   name: job.key,
   handle: job.handle,
