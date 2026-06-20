@@ -1,0 +1,74 @@
+import Whatsapp from "../../../models/Whatsapp";
+import { getIO } from "../../../libs/socket";
+import { initWbot, removeWbot } from "../../../libs/wbot";
+import { StartWhatsAppSessionVerify } from "../../../services/WbotServices/StartWhatsAppSessionVerify";
+import { wbotMessageListener } from "../../../services/WbotServices/wbotMessageListener";
+import wbotMonitor from "../../../services/WbotServices/wbotMonitor";
+
+jest.mock("../../../models/Whatsapp", () => ({
+  __esModule: true,
+  default: {
+    findByPk: jest.fn()
+  }
+}));
+
+jest.mock("../../../libs/socket", () => ({
+  getIO: jest.fn()
+}));
+
+jest.mock("../../../libs/wbot", () => ({
+  initWbot: jest.fn(),
+  removeWbot: jest.fn()
+}));
+
+jest.mock("../../../services/WbotServices/wbotMessageListener", () => ({
+  wbotMessageListener: jest.fn()
+}));
+
+jest.mock("../../../services/WbotServices/wbotMonitor", () => jest.fn());
+
+describe("StartWhatsAppSessionVerify", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("removes the stale session before starting a recovered WhatsApp client", async () => {
+    const emit = jest.fn();
+    const whatsapp = {
+      id: 12,
+      tenantId: 3,
+      update: jest.fn().mockResolvedValue(undefined)
+    };
+    const wbot = { id: 12 };
+
+    (Whatsapp.findByPk as jest.Mock).mockResolvedValue(whatsapp);
+    (getIO as jest.Mock).mockReturnValue({ emit });
+    (initWbot as jest.Mock).mockResolvedValue(wbot);
+
+    await StartWhatsAppSessionVerify(
+      whatsapp.id,
+      new Error("TypeError: Cannot read property 'sendSeen' of undefined")
+    );
+
+    expect(whatsapp.update).toHaveBeenCalledWith({ status: "OPENING" });
+    expect(emit).toHaveBeenCalledWith(`${whatsapp.tenantId}:whatsappSession`, {
+      action: "update",
+      session: whatsapp
+    });
+    expect(removeWbot).toHaveBeenCalledWith(whatsapp.id);
+    expect(initWbot).toHaveBeenCalledWith(whatsapp);
+    expect((removeWbot as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (initWbot as jest.Mock).mock.invocationCallOrder[0]
+    );
+    expect(wbotMessageListener).toHaveBeenCalledWith(wbot);
+    expect(wbotMonitor).toHaveBeenCalledWith(wbot, whatsapp);
+  });
+
+  it("does not restart the session for unrelated errors", async () => {
+    await StartWhatsAppSessionVerify(12, new Error("unrelated failure"));
+
+    expect(Whatsapp.findByPk).not.toHaveBeenCalled();
+    expect(removeWbot).not.toHaveBeenCalled();
+    expect(initWbot).not.toHaveBeenCalled();
+  });
+});
