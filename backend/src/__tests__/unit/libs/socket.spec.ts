@@ -48,8 +48,7 @@ describe("libs/socket", () => {
   });
 
   it("permite conexão com token válido sem chamar next com erro", async () => {
-    const decodeTokenSocket = require("../../../libs/decodeTokenSocket")
-      .default as jest.Mock;
+    const decodeTokenSocket = require("../../../libs/decodeTokenSocket") as jest.Mock;
     const User = require("../../../models/User");
     const { initIO } = loadSocketModule();
     const user = { id: 10, tenantId: 20, name: "User" };
@@ -105,8 +104,7 @@ describe("libs/socket", () => {
   });
 
   it("rejeita conexão com token inválido", async () => {
-    const decodeTokenSocket = require("../../../libs/decodeTokenSocket")
-      .default as jest.Mock;
+    const decodeTokenSocket = require("../../../libs/decodeTokenSocket") as jest.Mock;
     const User = require("../../../models/User");
     const { initIO } = loadSocketModule();
 
