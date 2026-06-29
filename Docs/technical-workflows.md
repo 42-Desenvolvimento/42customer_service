@@ -419,4 +419,3 @@ contadores de contatos quando a campanha nao esta em estado final.
 6. **Campanha nao envia**: confirmar que a sessao da campanha esta conectada,
    que os jobs existem em `SendMessageWhatsappCampaign` e que a data inicial nao
    ficou no passado apos conversao de timezone.
-

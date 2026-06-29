@@ -8,4 +8,3 @@ projeto.
 - [Fluxos tecnicos do Izing](technical-workflows.md): arquitetura de
   inicializacao, ChatFlow/bot por conexao, sessoes multicanal, pipeline de
   mensagens WhatsApp, API externa/webhooks e campanhas com Bull.
-
