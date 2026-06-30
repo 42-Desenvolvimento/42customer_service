@@ -45,6 +45,8 @@ jest.mock("../../../helpers/socketEmit", () => ({
 import SetTicketMessagesAsRead from "../../../helpers/SetTicketMessagesAsRead";
 
 describe("SetTicketMessagesAsRead", () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   const buildTicket = (overrides = {}) =>
     ({
       id: 10,
@@ -60,10 +62,20 @@ describe("SetTicketMessagesAsRead", () => {
       ...overrides
     } as any);
 
+  beforeAll(() => {
+    consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockMessageUpdate.mockResolvedValue([1]);
     mockShowTicketService.mockResolvedValue({ id: 10, unreadMessages: 0 });
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it("marca mensagens como lidas no WhatsApp, zera contador e emite ticket atualizado", async () => {
