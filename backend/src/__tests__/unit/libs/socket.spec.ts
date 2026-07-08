@@ -113,3 +113,5 @@ describe("socket initIO authentication", () => {
     });
   });
 });
+
+export {};

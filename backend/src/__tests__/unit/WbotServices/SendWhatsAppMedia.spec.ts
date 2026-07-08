@@ -95,3 +95,5 @@ describe("SendWhatsAppMedia", () => {
     expect(mockUnlinkSync).not.toHaveBeenCalled();
   });
 });
+
+export {};

@@ -100,3 +100,5 @@ describe("SetTicketMessagesAsRead", () => {
     consoleError.mockRestore();
   });
 });
+
+export {};
