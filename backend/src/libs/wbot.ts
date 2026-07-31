@@ -68,8 +68,8 @@ export const removeWbot = (whatsappId: number): void => {
   try {
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
     if (sessionIndex !== -1) {
-      sessions[sessionIndex].destroy();
-      sessions.splice(sessionIndex, 1);
+      const [session] = sessions.splice(sessionIndex, 1);
+      session.destroy();
     }
   } catch (err) {
     logger.error(`removeWbot | Error: ${err}`);
@@ -112,7 +112,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       wbot.id = whatsapp.id;
 
-      wbot.initialize();
+      Promise.resolve(wbot.initialize()).catch(err => {
+        logger.error(`initWbot initialize error | Error: ${err}`);
+        reject(err);
+      });
 
       wbot.on("qr", async qr => {
         if (whatsapp.status === "CONNECTED") return;
@@ -125,6 +128,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
+        } else {
+          sessions[sessionIndex] = wbot;
         }
 
         io.emit(`${tenantId}:whatsappSession`, {
@@ -193,6 +198,8 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
         if (sessionIndex === -1) {
           wbot.id = whatsapp.id;
           sessions.push(wbot);
+        } else {
+          sessions[sessionIndex] = wbot;
         }
 
         wbot.sendPresenceAvailable();
@@ -201,6 +208,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
     } catch (err) {
       logger.error(`initWbot error | Error: ${err}`);
+      reject(err);
     }
   });
 };
