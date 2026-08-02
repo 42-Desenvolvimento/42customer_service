@@ -5,6 +5,8 @@ import { getIO } from "../../libs/socket";
 import wbotMonitor from "./wbotMonitor";
 import { logger } from "../../utils/logger";
 
+const sessionsBeingRecovered = new Set<number>();
+
 export const StartWhatsAppSessionVerify = async (
   whatsappId: number,
   error: string
@@ -19,8 +21,11 @@ export const StartWhatsAppSessionVerify = async (
     errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
     errorString.indexOf(sessiondisconnected) !== -1
   ) {
-    const whatsapp = await Whatsapp.findByPk(whatsappId);
+    if (sessionsBeingRecovered.has(whatsappId)) return;
+    sessionsBeingRecovered.add(whatsappId);
+
     try {
+      const whatsapp = await Whatsapp.findByPk(whatsappId);
       if (whatsapp) {
         await whatsapp.update({ status: "OPENING" });
         const io = getIO();
@@ -35,6 +40,8 @@ export const StartWhatsAppSessionVerify = async (
       }
     } catch (err) {
       logger.error(err);
+    } finally {
+      sessionsBeingRecovered.delete(whatsappId);
     }
   }
 };

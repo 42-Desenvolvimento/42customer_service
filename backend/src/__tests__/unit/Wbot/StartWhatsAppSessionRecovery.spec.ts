@@ -106,6 +106,37 @@ describe("WhatsApp session recovery", () => {
     expect(mockedWbotMonitor).toHaveBeenCalledWith(wbot, whatsapp);
   });
 
+  it("deduplicates concurrent recovery attempts for the same session", async () => {
+    const whatsapp = makeWhatsapp();
+    let resolveInitWbot: (value: unknown) => void;
+    mockedWhatsapp.findByPk.mockResolvedValue(whatsapp);
+    mockedInitWbot.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          callOrder.push("initWbot");
+          resolveInitWbot = resolve;
+        })
+    );
+
+    const firstRecovery = StartWhatsAppSessionVerify(
+      whatsapp.id,
+      "session closed"
+    );
+    const secondRecovery = StartWhatsAppSessionVerify(
+      whatsapp.id,
+      "session closed"
+    );
+
+    await Promise.resolve();
+
+    expect(mockedWhatsapp.findByPk).toHaveBeenCalledTimes(1);
+    expect(mockedRemoveWbot).toHaveBeenCalledTimes(1);
+    expect(mockedInitWbot).toHaveBeenCalledTimes(1);
+
+    resolveInitWbot!(wbot);
+    await Promise.all([firstRecovery, secondRecovery]);
+  });
+
   it("replaces the stale session before manually starting whatsapp", async () => {
     const whatsapp = makeWhatsapp();
 
