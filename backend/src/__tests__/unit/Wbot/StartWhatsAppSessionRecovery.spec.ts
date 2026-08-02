@@ -127,8 +127,7 @@ describe("WhatsApp session recovery", () => {
       "session closed"
     );
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise(resolve => setImmediate(resolve));
 
     expect(mockedWhatsapp.findByPk).toHaveBeenCalledTimes(1);
     expect(mockedRemoveWbot).toHaveBeenCalledTimes(1);
