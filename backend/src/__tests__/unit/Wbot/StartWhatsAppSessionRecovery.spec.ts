@@ -128,6 +128,7 @@ describe("WhatsApp session recovery", () => {
     );
 
     await Promise.resolve();
+    await Promise.resolve();
 
     expect(mockedWhatsapp.findByPk).toHaveBeenCalledTimes(1);
     expect(mockedRemoveWbot).toHaveBeenCalledTimes(1);
