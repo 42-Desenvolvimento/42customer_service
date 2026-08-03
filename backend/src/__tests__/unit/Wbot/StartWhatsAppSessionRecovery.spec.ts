@@ -94,7 +94,7 @@ describe("WhatsApp session recovery", () => {
       update: jest.fn().mockResolvedValue(undefined)
     };
 
-    await StartWhatsAppSession(whatsapp as Whatsapp);
+    await StartWhatsAppSession(whatsapp as unknown as Whatsapp);
 
     expect(whatsapp.update).toHaveBeenCalledWith({ status: "OPENING" });
     expect(removeWbot).toHaveBeenCalledWith(whatsapp.id);
