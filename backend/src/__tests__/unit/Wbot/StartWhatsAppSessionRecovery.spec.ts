@@ -28,6 +28,22 @@ jest.mock("../../../services/WbotServices/wbotMessageListener", () => ({
 
 jest.mock("../../../services/WbotServices/wbotMonitor", () => jest.fn());
 
+jest.mock("../../../services/InstagramBotServices/StartInstaBotSession", () => ({
+  StartInstaBotSession: jest.fn()
+}));
+
+jest.mock("../../../services/TbotServices/StartTbotSession", () => ({
+  StartTbotSession: jest.fn()
+}));
+
+jest.mock("../../../services/WABA360/StartWaba360", () => ({
+  StartWaba360: jest.fn()
+}));
+
+jest.mock("../../../services/MessengerChannelServices/StartMessengerBot", () => ({
+  StartMessengerBot: jest.fn()
+}));
+
 const mockedInitWbot = initWbot as jest.Mock;
 const mockedRemoveWbot = removeWbot as jest.Mock;
 const mockedGetIO = getIO as jest.Mock;
