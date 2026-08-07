@@ -1,52 +1,50 @@
-import fs from "fs";
-import { MessageMedia } from "whatsapp-web.js";
-import AppError from "../../../errors/AppError";
-import GetTicketWbot from "../../../helpers/GetTicketWbot";
-import UserMessagesLog from "../../../models/UserMessagesLog";
-import SendWhatsAppMedia from "../../../services/WbotServices/SendWhatsAppMedia";
-import { StartWhatsAppSessionVerify } from "../../../services/WbotServices/StartWhatsAppSessionVerify";
-
-const mockUnlinkSync = jest.fn();
-const mockFromFilePath = jest.fn();
-const mockGetTicketWbot = jest.fn();
-const mockUserMessagesLogCreate = jest.fn();
-const mockStartWhatsAppSessionVerify = jest.fn();
-const mockLoggerError = jest.fn();
-
 jest.mock("fs", () => ({
-  unlinkSync: mockUnlinkSync
+  unlinkSync: jest.fn()
 }));
 
 jest.mock("whatsapp-web.js", () => ({
   MessageMedia: {
-    fromFilePath: mockFromFilePath
+    fromFilePath: jest.fn()
   }
 }));
 
 jest.mock("../../../helpers/GetTicketWbot", () => ({
   __esModule: true,
-  default: mockGetTicketWbot
+  default: jest.fn()
 }));
 
 jest.mock("../../../models/UserMessagesLog", () => ({
   __esModule: true,
   default: {
-    create: mockUserMessagesLogCreate
+    create: jest.fn()
   }
 }));
 
 jest.mock(
   "../../../services/WbotServices/StartWhatsAppSessionVerify",
   () => ({
-    StartWhatsAppSessionVerify: mockStartWhatsAppSessionVerify
+    StartWhatsAppSessionVerify: jest.fn()
   })
 );
 
 jest.mock("../../../utils/logger", () => ({
   logger: {
-    error: mockLoggerError
+    error: jest.fn()
   }
 }));
+
+import fs from "fs";
+import { MessageMedia } from "whatsapp-web.js";
+import GetTicketWbot from "../../../helpers/GetTicketWbot";
+import UserMessagesLog from "../../../models/UserMessagesLog";
+import SendWhatsAppMedia from "../../../services/WbotServices/SendWhatsAppMedia";
+import { StartWhatsAppSessionVerify } from "../../../services/WbotServices/StartWhatsAppSessionVerify";
+import { logger } from "../../../utils/logger";
+
+const mockFromFilePath = MessageMedia.fromFilePath as jest.Mock;
+const mockGetTicketWbot = GetTicketWbot as jest.Mock;
+const mockUserMessagesLogCreate = UserMessagesLog.create as jest.Mock;
+const mockLoggerError = logger.error as jest.Mock;
 
 describe("SendWhatsAppMedia", () => {
   const media = {
@@ -121,7 +119,12 @@ describe("SendWhatsAppMedia", () => {
         ticket,
         userId: undefined
       })
-    ).rejects.toEqual(expect.objectContaining(new AppError("ERR_SENDING_WAPP_MSG")));
+    ).rejects.toEqual(
+      expect.objectContaining({
+        message: "ERR_SENDING_WAPP_MSG",
+        statusCode: 400
+      })
+    );
 
     expect(StartWhatsAppSessionVerify).toHaveBeenCalledWith(
       ticket.whatsappId,

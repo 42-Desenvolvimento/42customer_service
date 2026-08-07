@@ -1,55 +1,53 @@
-import { initIO, getIO } from "../../../libs/socket";
-import decodeTokenSocket from "../../../libs/decodeTokenSocket";
-import User from "../../../models/User";
-import Chat from "../../../libs/socketChat/Chat";
-
-const mockAdapter = jest.fn();
-const mockUse = jest.fn();
-const mockOn = jest.fn();
-const mockSocketIOServer = {
-  adapter: mockAdapter,
-  use: mockUse,
-  on: mockOn
-};
-const mockSocketIOConstructor = jest.fn(() => mockSocketIOServer);
-const mockSocketRedis = jest.fn(() => "redis-adapter");
-const mockDecodeTokenSocket = jest.fn();
-const mockUserFindByPk = jest.fn();
-const mockChatRegister = jest.fn();
-const mockLoggerInfo = jest.fn();
-const mockLoggerWarn = jest.fn();
-
 jest.mock("socket.io", () => ({
-  Server: mockSocketIOConstructor
+  Server: jest.fn(() => ({
+    adapter: jest.fn(),
+    use: jest.fn(),
+    on: jest.fn()
+  }))
 }));
 
-jest.mock("socket.io-redis", () => mockSocketRedis);
+jest.mock("socket.io-redis", () => jest.fn(() => "redis-adapter"));
 
 jest.mock("../../../libs/decodeTokenSocket", () => ({
   __esModule: true,
-  default: mockDecodeTokenSocket
+  default: jest.fn()
 }));
 
 jest.mock("../../../models/User", () => ({
   __esModule: true,
   default: {
-    findByPk: mockUserFindByPk
+    findByPk: jest.fn()
   }
 }));
 
 jest.mock("../../../libs/socketChat/Chat", () => ({
   __esModule: true,
   default: {
-    register: mockChatRegister
+    register: jest.fn()
   }
 }));
 
 jest.mock("../../../utils/logger", () => ({
   logger: {
-    info: mockLoggerInfo,
-    warn: mockLoggerWarn
+    info: jest.fn(),
+    warn: jest.fn()
   }
 }));
+
+import { initIO, getIO } from "../../../libs/socket";
+import decodeTokenSocket from "../../../libs/decodeTokenSocket";
+import User from "../../../models/User";
+import Chat from "../../../libs/socketChat/Chat";
+
+const mockSocketIOConstructor = jest.requireMock("socket.io").Server as jest.Mock;
+const mockSocketRedis = jest.requireMock("socket.io-redis") as jest.Mock;
+const mockDecodeTokenSocket = decodeTokenSocket as jest.Mock;
+const mockUserFindByPk = User.findByPk as jest.Mock;
+
+const getLatestSocketServer = () =>
+  mockSocketIOConstructor.mock.results[
+    mockSocketIOConstructor.mock.results.length - 1
+  ].value;
 
 describe("socket", () => {
   beforeEach(() => {
@@ -62,7 +60,7 @@ describe("socket", () => {
 
   const getMiddleware = () => {
     initIO({} as any);
-    return mockUse.mock.calls[0][0];
+    return getLatestSocketServer().use.mock.calls[0][0];
   };
 
   it("mantem conexao autenticada e nao chama next com erro", async () => {
@@ -150,9 +148,10 @@ describe("socket", () => {
 
   it("registra salas do tenant e eventos de chat ao conectar", () => {
     initIO({} as any);
-    const connectionHandler = mockOn.mock.calls.find(
+    const connectionCall = getLatestSocketServer().on.mock.calls.find(
       ([eventName]) => eventName === "connection"
-    )[1];
+    );
+    const connectionHandler = connectionCall?.[1] as (socket: any) => void;
     const socket = {
       id: "socket-3",
       handshake: {
@@ -181,14 +180,15 @@ describe("socket", () => {
 
   it("retorna a instancia inicializada do Socket.IO", () => {
     initIO({} as any);
+    const socketServer = getLatestSocketServer();
 
-    expect(getIO()).toBe(mockSocketIOServer);
+    expect(getIO()).toBe(socketServer);
     expect(mockSocketRedis).toHaveBeenCalledWith({
       host: undefined,
       port: NaN,
       username: undefined,
       password: undefined
     });
-    expect(mockAdapter).toHaveBeenCalledWith("redis-adapter");
+    expect(socketServer.adapter).toHaveBeenCalledWith("redis-adapter");
   });
 });

@@ -1,3 +1,42 @@
+jest.mock("../../../models/Message", () => ({
+  __esModule: true,
+  default: {
+    update: jest.fn()
+  }
+}));
+
+jest.mock("../../../libs/messengerBot", () => ({
+  getMessengerBot: jest.fn()
+}));
+
+jest.mock("../../../services/TicketServices/ShowTicketService", () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
+
+jest.mock(
+  "../../../services/WbotServices/StartWhatsAppSessionVerify",
+  () => ({
+    StartWhatsAppSessionVerify: jest.fn()
+  })
+);
+
+jest.mock("../../../helpers/GetTicketWbot", () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
+
+jest.mock("../../../helpers/socketEmit", () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
+
+jest.mock("../../../utils/logger", () => ({
+  logger: {
+    warn: jest.fn()
+  }
+}));
+
 import SetTicketMessagesAsRead from "../../../helpers/SetTicketMessagesAsRead";
 import Message from "../../../models/Message";
 import { getMessengerBot } from "../../../libs/messengerBot";
@@ -6,52 +45,10 @@ import { StartWhatsAppSessionVerify } from "../../../services/WbotServices/Start
 import GetTicketWbot from "../../../helpers/GetTicketWbot";
 import socketEmit from "../../../helpers/socketEmit";
 
-const mockMessageUpdate = jest.fn();
-const mockGetMessengerBot = jest.fn();
-const mockShowTicketService = jest.fn();
-const mockStartWhatsAppSessionVerify = jest.fn();
-const mockGetTicketWbot = jest.fn();
-const mockSocketEmit = jest.fn();
-const mockLoggerWarn = jest.fn();
-
-jest.mock("../../../models/Message", () => ({
-  __esModule: true,
-  default: {
-    update: mockMessageUpdate
-  }
-}));
-
-jest.mock("../../../libs/messengerBot", () => ({
-  getMessengerBot: mockGetMessengerBot
-}));
-
-jest.mock("../../../services/TicketServices/ShowTicketService", () => ({
-  __esModule: true,
-  default: mockShowTicketService
-}));
-
-jest.mock(
-  "../../../services/WbotServices/StartWhatsAppSessionVerify",
-  () => ({
-    StartWhatsAppSessionVerify: mockStartWhatsAppSessionVerify
-  })
-);
-
-jest.mock("../../../helpers/GetTicketWbot", () => ({
-  __esModule: true,
-  default: mockGetTicketWbot
-}));
-
-jest.mock("../../../helpers/socketEmit", () => ({
-  __esModule: true,
-  default: mockSocketEmit
-}));
-
-jest.mock("../../../utils/logger", () => ({
-  logger: {
-    warn: mockLoggerWarn
-  }
-}));
+const mockMessageUpdate = Message.update as jest.Mock;
+const mockGetMessengerBot = getMessengerBot as jest.Mock;
+const mockShowTicketService = ShowTicketService as jest.Mock;
+const mockGetTicketWbot = GetTicketWbot as jest.Mock;
 
 describe("SetTicketMessagesAsRead", () => {
   const ticketReload = { id: 123, unreadMessages: 0 };
