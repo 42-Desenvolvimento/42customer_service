@@ -25,7 +25,7 @@ const CancelCampaignService = async ({
       redis: {
         port: Number(process.env.IO_REDIS_PORT),
         host: process.env.IO_REDIS_SERVER,
-        db: Number(process.env.IO_REDIS_DB_SESSION) || 2,
+        db: 3,
         password: process.env.IO_REDIS_PASSWORD || undefined
       }
     }).removeJobs(`campaginId_${campaign.id}*`);
