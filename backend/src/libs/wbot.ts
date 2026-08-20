@@ -68,8 +68,8 @@ export const removeWbot = (whatsappId: number): void => {
   try {
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
     if (sessionIndex !== -1) {
-      sessions[sessionIndex].destroy();
-      sessions.splice(sessionIndex, 1);
+      const [session] = sessions.splice(sessionIndex, 1);
+      session.destroy();
     }
   } catch (err) {
     logger.error(`removeWbot | Error: ${err}`);
