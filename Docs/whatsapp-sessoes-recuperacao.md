@@ -21,13 +21,17 @@ conteudo foi validado contra os arquivos listados em [Codigo coberto](#codigo-co
   - `backend/src/services/WbotServices/StartWhatsAppSessionVerify.ts`
   - `backend/src/services/WbotServices/SendMessage.ts`
   - `backend/src/services/WbotServices/SendWhatsAppMedia.ts`
+  - `backend/src/services/WbotServices/SendWhatsAppMessage.ts`
+  - `backend/src/services/WbotServices/SyncUnreadMessagesWbot.ts`
   - `backend/src/services/WbotServices/wbotMonitor.ts`
+  - `backend/src/models/Whatsapp.ts`
 - Frontend:
   - `frontend/src/utils/socket.js`
   - `frontend/src/layouts/socketInitial.js`
   - `frontend/src/service/sessoesWhatsapp.js`
   - `frontend/src/store/modules/whatsapp.js`
   - `frontend/src/pages/sessaoWhatsapp/Index.vue`
+  - `frontend/src/pages/sessaoWhatsapp/ItemStatusChannel.vue`
 
 ## Intencao do fluxo
 
@@ -62,6 +66,9 @@ Mudancas recentes reforcaram a recuperacao em dois pontos sensiveis:
 5. No evento `ready`, `initWbot` grava `CONNECTED`, limpa `qrcode`, zera
    `retries`, salva informacoes do telefone/navegador, emite `update` e
    `readySession`, envia presenca disponivel e sincroniza mensagens nao lidas.
+6. `SyncUnreadMessagesWbot` busca chats com mensagens nao lidas apos o `ready`,
+   ignora grupos, recria tickets quando necessario e dispara webhooks de status
+   de mensagem quando o ticket possui configuracao externa.
 
 ## Dependencias e configuracao
 
@@ -73,6 +80,7 @@ Mudancas recentes reforcaram a recuperacao em dois pontos sensiveis:
   - `CHROME_BIN` define o executavel do Chromium/Chrome.
 - `WEB_VERSION` troca a versao do WhatsApp Web usada pelo client. Sem variavel,
   o fallback atual e `2.2409.2`.
+- `CONNECTIONS_LIMIT` limita a criacao de canais em `WhatsAppController.store`.
 - Socket.IO usa Redis adapter com:
   - `IO_REDIS_SERVER`
   - `IO_REDIS_PORT`
@@ -90,6 +98,10 @@ Todas as rotas abaixo usam `isAuth` e estao registradas em
 | `PUT` | `/whatsappsession/:whatsappId` | Limpa `session`; se `isQrcode` for verdadeiro, remove a pasta local da sessao antes de reiniciar. |
 | `DELETE` | `/whatsappsession/:whatsappId` | Faz logout/remove a instancia do canal e grava status `DISCONNECTED`. |
 
+O CRUD de canais fica em `/whatsapp/` e `/whatsapp/:whatsappId`. A criacao
+respeita `CONNECTIONS_LIMIT`; a remocao chama `removeWbot` e emite
+`<tenantId>:whatsapp` com `action: "delete"`.
+
 Exemplo para solicitar novo QR Code pela API:
 
 ```http
@@ -102,9 +114,11 @@ Content-Type: application/json
 ```
 
 A API externa tambem pode iniciar uma sessao vinculada ao token da configuracao:
+`POST /v1/api/external/:apiId/start-session` usa `isAPIAuth`,
 `APIExternalController.startSession` valida `APIConfig.sessionId`, testa
 `getWbot(...).getState() === "CONNECTED"` e chama `StartWhatsAppSession` quando
-a sessao nao esta pronta.
+a sessao nao esta pronta. O envio externo de mensagem usa
+`POST /v1/api/external/:apiId` com upload opcional no campo `media`.
 
 ## Eventos Socket.IO
 
@@ -130,10 +144,18 @@ entrar em salas especificas:
 | `<tenantId>:whatsappSession` | `{ action: "update", session }` | Status muda para `OPENING`, `qrcode`, `CONNECTED`, estados do WhatsApp ou desconexao. |
 | `<tenantId>:whatsappSession` | `{ action: "readySession", session }` | `wbot` terminou o evento `ready`. |
 | `<tenantId>:change_battery` | `{ action: "update", batteryInfo }` | Bateria menor ou igual a 20% e telefone sem carregador. |
+| `<tenantId>:whatsapp` | `{ action: "update" | "delete", ... }` | CRUD de conexoes WhatsApp. |
 
 `frontend/src/layouts/socketInitial.js` atualiza a store com `UPDATE_SESSION`,
 emite `UPDATE_SESSION` no `$root` e mostra notificacao quando recebe
 `readySession`.
+
+### Webhooks de status
+
+`Whatsapp.HookStatus` roda em `@AfterUpdate`. Quando a conexao possui
+`ApiConfig.urlServiceStatus`, o backend enfileira `WebHooksAPI` com payload
+`type: "hookSessionStatus"` contendo `name`, `number`, `status`, `qrcode` e
+`timestamp`. Se a configuracao tiver `authToken`, o token e incluido no payload.
 
 ## Estados operacionais
 
@@ -141,6 +163,7 @@ emite `UPDATE_SESSION` no `$root` e mostra notificacao quando recebe
 - `qrcode`: existe QR Code pendente para leitura.
 - `CONNECTED`: sessao pronta para enviar e receber mensagens.
 - `DISCONNECTED`: canal desligado manualmente ou falha de autenticacao.
+- `PAIRING` e `TIMEOUT`: a interface mostra perda de conexao com o celular.
 - Outros estados podem vir diretamente do WhatsApp Web por `change_state`; a
   interface deve tratar esses valores como estado operacional da sessao.
 
@@ -172,18 +195,38 @@ Quando uma assinatura bate, o servico:
   - `SendWhatsAppMedia` chama `wbot.sendMessage(...)` com `MessageMedia`.
   - Em erro, loga `SendWhatsAppMedia | Error`, chama
     `StartWhatsAppSessionVerify` e retorna `ERR_SENDING_WAPP_MSG`.
+- Envio direto de texto:
+  - `SendWhatsAppMessage` chama `wbot.sendMessage(...)`, atualiza
+    `lastMessage`/`lastMessageAt` e registra `UserMessagesLog` quando ha
+    `userId`.
+  - Em erro, loga `SendWhatsAppMessage | Error`, mas a chamada para
+    `StartWhatsAppSessionVerify` esta comentada.
 
 ### Limites conhecidos
 
 - `SendMessage.ts` envia texto e midia a partir de registros `Message`, mas nao
   chama `StartWhatsAppSessionVerify`; erros sobem pelo job ou caller que executa
-  o servico.
+  o servico. `SendWhatsAppMessage.ts` tambem tem a chamada de recuperacao
+  comentada para erros de texto.
 - A comparacao de `StartWhatsAppSessionVerify` converte o erro recebido para
   minusculo, mas a assinatura `TypeError: Cannot read property 'sendSeen' of
   undefined` esta declarada com letras maiusculas. Essa assinatura especifica
   pode nao bater ate ser normalizada no codigo.
 - `initWbot` mantem sessoes em memoria no array `sessions`; reinicios de
   processo dependem da pasta `.wwebjs_auth` gerenciada pelo `LocalAuth`.
+- O array `sessions` e local ao processo. Deploys com multiplas instancias ou
+  overlap podem fazer `getWbot` procurar a sessao no processo errado; alem
+  disso, `takeoverOnConflict: true` permite que uma instancia derrube outra.
+- `wbotMonitor` reinicia apos `disconnected` sem chamar `removeWbot`, e
+  `StartWhatsAppSessionVerify` tambem reinicializa sem cleanup previo. Se o
+  erro se repetir, acompanhe logs para identificar listeners duplicados ou
+  sessoes orfas.
+- O boot nao retoma canais em status `qrcode`, porque
+  `StartAllWhatsAppsSessions` exclui esse status do restart automatico.
+- `initWbot` loga erros no `catch` externo, mas nao chama `reject`; uma falha
+  antes dos eventos do client pode deixar a promise sem conclusao explicita.
+- `SyncUnreadMessagesWbot` ignora grupos e usa `unreadMessages.map(async ...)`
+  sem aguardar explicitamente cada processamento individual.
 - O envio de midia remove o arquivo temporario com `fs.unlinkSync(media.path)`
   somente depois do envio e do log de usuario terminarem com sucesso.
 
