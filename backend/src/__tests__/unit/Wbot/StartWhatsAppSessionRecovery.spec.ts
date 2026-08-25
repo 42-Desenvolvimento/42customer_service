@@ -47,6 +47,8 @@ const mockedFindByPk = Whatsapp.findByPk as jest.Mock;
 const mockedGetIO = getIO as jest.Mock;
 const mockedWbotMonitor = wbotMonitor as jest.Mock;
 const mockedWbotMessageListener = wbotMessageListener as jest.Mock;
+const flushPromises = (): Promise<void> =>
+  new Promise(resolve => setImmediate(resolve));
 
 describe("WhatsApp session recovery", () => {
   const emit = jest.fn();
@@ -92,6 +94,40 @@ describe("WhatsApp session recovery", () => {
     expect(mockedFindByPk).not.toHaveBeenCalled();
     expect(mockedRemoveWbot).not.toHaveBeenCalled();
     expect(mockedInitWbot).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates concurrent recovery attempts for the same session", async () => {
+    const whatsapp = {
+      id: 42,
+      tenantId: 7,
+      update: jest.fn().mockResolvedValue(undefined)
+    };
+    let resolveInit: (value: typeof wbot) => void = () => undefined;
+    const initPromise = new Promise<typeof wbot>(resolve => {
+      resolveInit = resolve;
+    });
+    mockedFindByPk.mockResolvedValue(whatsapp);
+    mockedInitWbot.mockReturnValue(initPromise);
+
+    const firstRecovery = StartWhatsAppSessionVerify(
+      42,
+      new Error("session closed")
+    );
+    const secondRecovery = StartWhatsAppSessionVerify(
+      42,
+      new Error("session closed")
+    );
+
+    await secondRecovery;
+    await flushPromises();
+    expect(mockedFindByPk).toHaveBeenCalledTimes(1);
+    expect(mockedRemoveWbot).toHaveBeenCalledTimes(1);
+    expect(mockedInitWbot).toHaveBeenCalledTimes(1);
+
+    resolveInit(wbot);
+    await firstRecovery;
+    expect(mockedWbotMessageListener).toHaveBeenCalledTimes(1);
+    expect(mockedWbotMonitor).toHaveBeenCalledTimes(1);
   });
 
   it("removes the stale session before starting a whatsapp session", async () => {
