@@ -1,27 +1,32 @@
-import { initWbot } from "../../libs/wbot";
+import { initWbot, removeWbot } from "../../libs/wbot";
 import Whatsapp from "../../models/Whatsapp";
 import { wbotMessageListener } from "./wbotMessageListener";
 import { getIO } from "../../libs/socket";
 import wbotMonitor from "./wbotMonitor";
 import { logger } from "../../utils/logger";
 
+const sessionsBeingRecovered = new Set<number>();
+
 export const StartWhatsAppSessionVerify = async (
   whatsappId: number,
-  error: string
+  error: unknown
 ): Promise<void> => {
-  const errorString = error.toString().toLowerCase();
+  const errorString = String(error).toLowerCase();
   const sessionClosed = "session closed";
-  const sessiondisconnected =
-    "TypeError: Cannot read property 'sendSeen' of undefined";
+  const sendSeenUnavailable = "sendseen";
   const WAPP_NOT_INIT = "ERR_WAPP_NOT_INITIALIZED".toLowerCase();
   if (
     errorString.indexOf(sessionClosed) !== -1 ||
     errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
-    errorString.indexOf(sessiondisconnected) !== -1
+    errorString.indexOf(sendSeenUnavailable) !== -1
   ) {
-    const whatsapp = await Whatsapp.findByPk(whatsappId);
+    if (sessionsBeingRecovered.has(whatsappId)) return;
+
+    sessionsBeingRecovered.add(whatsappId);
     try {
+      const whatsapp = await Whatsapp.findByPk(whatsappId);
       if (whatsapp) {
+        removeWbot(whatsapp.id);
         await whatsapp.update({ status: "OPENING" });
         const io = getIO();
         io.emit(`${whatsapp?.tenantId}:whatsappSession`, {
@@ -34,6 +39,8 @@ export const StartWhatsAppSessionVerify = async (
       }
     } catch (err) {
       logger.error(err);
+    } finally {
+      sessionsBeingRecovered.delete(whatsappId);
     }
   }
 };
