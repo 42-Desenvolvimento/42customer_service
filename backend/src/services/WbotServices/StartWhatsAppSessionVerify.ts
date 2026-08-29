@@ -5,6 +5,8 @@ import { getIO } from "../../libs/socket";
 import wbotMonitor from "./wbotMonitor";
 import { logger } from "../../utils/logger";
 
+const sessionsInRecovery = new Set<number>();
+
 export const StartWhatsAppSessionVerify = async (
   whatsappId: number,
   error: unknown
@@ -19,6 +21,11 @@ export const StartWhatsAppSessionVerify = async (
     errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
     sendSeenUnavailable
   ) {
+    if (sessionsInRecovery.has(whatsappId)) {
+      return;
+    }
+
+    sessionsInRecovery.add(whatsappId);
     try {
       const whatsapp = await Whatsapp.findByPk(whatsappId);
       if (whatsapp) {
@@ -35,6 +42,8 @@ export const StartWhatsAppSessionVerify = async (
       }
     } catch (err) {
       logger.error(err);
+    } finally {
+      sessionsInRecovery.delete(whatsappId);
     }
   }
 };

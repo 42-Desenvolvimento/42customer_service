@@ -93,4 +93,41 @@ describe("StartWhatsAppSessionVerify", () => {
     expect(removeWbotMock).not.toHaveBeenCalled();
     expect(initWbotMock).not.toHaveBeenCalled();
   });
+
+  it("deduplicates concurrent recovery attempts for the same whatsapp", async () => {
+    const whatsapp = {
+      id: 42,
+      tenantId: 7,
+      update: jest.fn().mockResolvedValue(undefined)
+    };
+    const io = { emit: jest.fn() };
+    const wbot = { id: whatsapp.id };
+    let resolveFindByPk: (whatsapp: unknown) => void = () => undefined;
+
+    findByPkMock.mockReturnValue(
+      new Promise(resolve => {
+        resolveFindByPk = resolve;
+      })
+    );
+    getIOMock.mockReturnValue(io);
+    initWbotMock.mockResolvedValue(wbot);
+
+    const firstRecovery = StartWhatsAppSessionVerify(
+      whatsapp.id,
+      new Error("session closed")
+    );
+    const secondRecovery = StartWhatsAppSessionVerify(
+      whatsapp.id,
+      new Error("session closed")
+    );
+
+    await secondRecovery;
+    expect(findByPkMock).toHaveBeenCalledTimes(1);
+
+    resolveFindByPk(whatsapp);
+    await firstRecovery;
+
+    expect(removeWbotMock).toHaveBeenCalledTimes(1);
+    expect(initWbotMock).toHaveBeenCalledTimes(1);
+  });
 });
