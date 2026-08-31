@@ -12,7 +12,7 @@ export const StartWhatsAppSessionVerify = async (
   const errorString = error.toString().toLowerCase();
   const sessionClosed = "session closed";
   const sessiondisconnected =
-    "TypeError: Cannot read property 'sendSeen' of undefined";
+    "typeerror: cannot read property 'sendseen' of undefined";
   const WAPP_NOT_INIT = "ERR_WAPP_NOT_INITIALIZED".toLowerCase();
   if (
     errorString.indexOf(sessionClosed) !== -1 ||
