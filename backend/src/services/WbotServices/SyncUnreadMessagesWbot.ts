@@ -47,42 +47,44 @@ const SyncUnreadMessagesWbot = async (
             return;
           }
 
-          unreadMessages.map(async (msg, idx) => {
-            logger.info(`MSG: ${msg}`, msg.id?.id);
-            if (msg.hasMedia) {
-              await VerifyMediaMessage(msg, ticket, contact);
-            } else {
-              await VerifyMessage(msg, ticket, contact);
-            }
-            // enviar mensagem do bot na ultima mensagem
-            if (idx === unreadMessages.length - 1) {
-              await VerifyStepsChatFlowTicket(msg, ticket);
-
-              const apiConfig: any = ticket.apiConfig || {};
-              if (
-                !msg.fromMe &&
-                !ticket.isGroup &&
-                !ticket.answered &&
-                apiConfig?.externalKey &&
-                apiConfig?.urlMessageStatus
-              ) {
-                const payload = {
-                  timestamp: Date.now(),
-                  msg,
-                  messageId: msg.id.id,
-                  ticketId: ticket.id,
-                  externalKey: apiConfig?.externalKey,
-                  authToken: apiConfig?.authToken,
-                  type: "hookMessage"
-                };
-                Queue.add("WebHooksAPI", {
-                  url: apiConfig.urlMessageStatus,
-                  type: payload.type,
-                  payload
-                });
+          await Promise.all(
+            unreadMessages.map(async (msg, idx) => {
+              logger.info(`MSG: ${msg}`, msg.id?.id);
+              if (msg.hasMedia) {
+                await VerifyMediaMessage(msg, ticket, contact);
+              } else {
+                await VerifyMessage(msg, ticket, contact);
               }
-            }
-          });
+              // enviar mensagem do bot na ultima mensagem
+              if (idx === unreadMessages.length - 1) {
+                await VerifyStepsChatFlowTicket(msg, ticket);
+
+                const apiConfig: any = ticket.apiConfig || {};
+                if (
+                  !msg.fromMe &&
+                  !ticket.isGroup &&
+                  !ticket.answered &&
+                  apiConfig?.externalKey &&
+                  apiConfig?.urlMessageStatus
+                ) {
+                  const payload = {
+                    timestamp: Date.now(),
+                    msg,
+                    messageId: msg.id.id,
+                    ticketId: ticket.id,
+                    externalKey: apiConfig?.externalKey,
+                    authToken: apiConfig?.authToken,
+                    type: "hookMessage"
+                  };
+                  Queue.add("WebHooksAPI", {
+                    url: apiConfig.urlMessageStatus,
+                    type: payload.type,
+                    payload
+                  });
+                }
+              }
+            })
+          );
         }
       })
     );

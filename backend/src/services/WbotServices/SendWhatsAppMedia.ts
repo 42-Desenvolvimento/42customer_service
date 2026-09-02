@@ -51,6 +51,14 @@ const SendWhatsAppMedia = async ({
     logger.error(`SendWhatsAppMedia | Error: ${err}`);
     StartWhatsAppSessionVerify(ticket.whatsappId, err);
     throw new AppError("ERR_SENDING_WAPP_MSG");
+  } finally {
+    if (media?.path && fs.existsSync(media.path)) {
+      try {
+        fs.unlinkSync(media.path);
+      } catch (error) {
+        logger.error(`SendWhatsAppMedia | Error removing temp file: ${error}`);
+      }
+    }
   }
 };
 
