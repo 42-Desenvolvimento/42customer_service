@@ -1,4 +1,4 @@
-import { initWbot } from "../../libs/wbot";
+import { initWbot, removeWbot } from "../../libs/wbot";
 import Whatsapp from "../../models/Whatsapp";
 import { wbotMessageListener } from "./wbotMessageListener";
 import { getIO } from "../../libs/socket";
@@ -7,17 +7,17 @@ import { logger } from "../../utils/logger";
 
 export const StartWhatsAppSessionVerify = async (
   whatsappId: number,
-  error: string
+  error: unknown
 ): Promise<void> => {
-  const errorString = error.toString().toLowerCase();
+  const errorString = String(error).toLowerCase();
   const sessionClosed = "session closed";
-  const sessiondisconnected =
-    "TypeError: Cannot read property 'sendSeen' of undefined";
+  const sessionDisconnected =
+    "typeerror: cannot read property 'sendseen' of undefined";
   const WAPP_NOT_INIT = "ERR_WAPP_NOT_INITIALIZED".toLowerCase();
   if (
     errorString.indexOf(sessionClosed) !== -1 ||
     errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
-    errorString.indexOf(sessiondisconnected) !== -1
+    errorString.indexOf(sessionDisconnected) !== -1
   ) {
     const whatsapp = await Whatsapp.findByPk(whatsappId);
     try {
@@ -28,6 +28,7 @@ export const StartWhatsAppSessionVerify = async (
           action: "update",
           session: whatsapp
         });
+        removeWbot(whatsapp.id);
         const wbot = await initWbot(whatsapp);
         wbotMessageListener(wbot);
         wbotMonitor(wbot, whatsapp);
