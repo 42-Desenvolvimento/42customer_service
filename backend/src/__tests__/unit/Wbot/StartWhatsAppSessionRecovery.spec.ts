@@ -29,6 +29,22 @@ jest.mock("../../../services/WbotServices/wbotMonitor", () => ({
   default: mockWbotMonitor
 }));
 
+jest.mock("../../../services/InstagramBotServices/StartInstaBotSession", () => ({
+  StartInstaBotSession: jest.fn()
+}));
+
+jest.mock("../../../services/TbotServices/StartTbotSession", () => ({
+  StartTbotSession: jest.fn()
+}));
+
+jest.mock("../../../services/WABA360/StartWaba360", () => ({
+  StartWaba360: jest.fn()
+}));
+
+jest.mock("../../../services/MessengerChannelServices/StartMessengerBot", () => ({
+  StartMessengerBot: jest.fn()
+}));
+
 jest.mock("../../../utils/logger", () => ({
   logger: {
     error: jest.fn(),
