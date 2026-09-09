@@ -68,8 +68,11 @@ export const removeWbot = (whatsappId: number): void => {
   try {
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
     if (sessionIndex !== -1) {
-      sessions[sessionIndex].destroy();
+      const session = sessions[sessionIndex];
       sessions.splice(sessionIndex, 1);
+      Promise.resolve(session.destroy()).catch(err =>
+        logger.error(`removeWbot | Error: ${err}`)
+      );
     }
   } catch (err) {
     logger.error(`removeWbot | Error: ${err}`);
@@ -201,6 +204,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
     } catch (err) {
       logger.error(`initWbot error | Error: ${err}`);
+      reject(err);
     }
   });
 };
