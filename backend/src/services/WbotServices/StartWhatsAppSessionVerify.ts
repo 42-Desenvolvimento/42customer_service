@@ -11,13 +11,12 @@ export const StartWhatsAppSessionVerify = async (
 ): Promise<void> => {
   const errorString = String(error).toLowerCase();
   const sessionClosed = "session closed";
-  const sessiondisconnected =
-    "typeerror: cannot read property 'sendseen' of undefined";
+  const sendSeenError = "sendseen";
   const WAPP_NOT_INIT = "ERR_WAPP_NOT_INITIALIZED".toLowerCase();
   if (
     errorString.indexOf(sessionClosed) !== -1 ||
     errorString.indexOf(WAPP_NOT_INIT) !== -1 ||
-    errorString.indexOf(sessiondisconnected) !== -1
+    errorString.indexOf(sendSeenError) !== -1
   ) {
     const whatsapp = await Whatsapp.findByPk(whatsappId);
     try {

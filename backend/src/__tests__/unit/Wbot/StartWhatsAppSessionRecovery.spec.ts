@@ -63,7 +63,16 @@ describe("StartWhatsAppSession recovery", () => {
     jest.clearAllMocks();
   });
 
-  it("removes the stale wbot before recovering from sendSeen failures", async () => {
+  it.each([
+    [
+      "legacy sendSeen TypeError",
+      new Error("TypeError: Cannot read property 'sendSeen' of undefined")
+    ],
+    [
+      "current sendSeen TypeError",
+      new Error("TypeError: Cannot read properties of undefined (reading 'sendSeen')")
+    ]
+  ])("removes the stale wbot before recovering from %s", async (_, error) => {
     const whatsapp = {
       id: 7,
       tenantId: 3,
@@ -73,10 +82,7 @@ describe("StartWhatsAppSession recovery", () => {
     mockFindByPk.mockResolvedValue(whatsapp);
     mockInitWbot.mockResolvedValue(wbot);
 
-    await StartWhatsAppSessionVerify(
-      whatsapp.id,
-      new Error("TypeError: Cannot read property 'sendSeen' of undefined")
-    );
+    await StartWhatsAppSessionVerify(whatsapp.id, error);
 
     expect(whatsapp.update).toHaveBeenCalledWith({ status: "OPENING" });
     expect(mockEmit).toHaveBeenCalledWith("3:whatsappSession", {
