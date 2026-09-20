@@ -8,6 +8,16 @@ const execAsync = promisify(exec);
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
 
+const runMigrations = async (): Promise<void> => {
+  logger.info("Iniciando a execução das migrations...");
+  const { stdout, stderr } = await execAsync("npx sequelize db:migrate");
+  logger.info(`Saída do comando: ${stdout}`);
+  if (stderr) {
+    logger.warn(`Aviso ao executar o comando: ${stderr}`);
+  }
+  logger.info("Migrations executadas com sucesso!");
+};
+
 // Função para aguardar a conexão com o PostgreSQL
 const waitForPostgresConnection = async function () {
   const sequelize = new Sequelize(dbConfig);
@@ -17,20 +27,6 @@ const waitForPostgresConnection = async function () {
       // eslint-disable-next-line no-await-in-loop
       await sequelize.authenticate();
       logger.info("Conexão com o PostgreSQL estabelecida com sucesso!");
-
-      if (process.env.NODE_ENV === "production") {
-        logger.info("Iniciando a execução das migrations...");
-        // eslint-disable-next-line no-await-in-loop
-        const { stdout, stderr } = await execAsync(
-          "npx sequelize db:migrate"
-        );
-        logger.info(`Saída do comando: ${stdout}`);
-        if (stderr) {
-          logger.error(`Erro ao executar o comando: ${stderr}`);
-          throw new Error(`Erro ao executar o comando: ${stderr}`);
-        }
-        logger.info("Migrations executadas com sucesso!");
-      }
       break;
     } catch (error) {
       logger.info(
@@ -40,6 +36,10 @@ const waitForPostgresConnection = async function () {
       // eslint-disable-next-line no-await-in-loop
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    await runMigrations();
   }
 };
 
