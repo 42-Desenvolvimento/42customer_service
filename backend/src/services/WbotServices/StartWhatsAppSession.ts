@@ -1,4 +1,4 @@
-import { initWbot } from "../../libs/wbot";
+import { initWbot, removeWbot } from "../../libs/wbot";
 import Whatsapp from "../../models/Whatsapp";
 import { wbotMessageListener } from "./wbotMessageListener";
 import { getIO } from "../../libs/socket";
@@ -23,6 +23,7 @@ export const StartWhatsAppSession = async (
 
   try {
     if (whatsapp.type === "whatsapp") {
+      removeWbot(whatsapp.id);
       const wbot = await initWbot(whatsapp);
       wbotMessageListener(wbot);
       wbotMonitor(wbot, whatsapp);
