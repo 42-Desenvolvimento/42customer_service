@@ -68,7 +68,7 @@ export const remove = async (
   const { whatsappId } = req.params;
   const { tenantId } = req.user;
   await DeleteWhatsAppService(whatsappId, tenantId);
-  removeWbot(+whatsappId);
+  await removeWbot(+whatsappId);
 
   const io = getIO();
   io.emit(`${tenantId}:whatsapp`, {
