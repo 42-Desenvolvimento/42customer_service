@@ -64,12 +64,12 @@ export const apagarPastaSessao = async (id: number | string): Promise<void> => {
   }
 };
 
-export const removeWbot = (whatsappId: number): void => {
+export const removeWbot = async (whatsappId: number): Promise<void> => {
   try {
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
     if (sessionIndex !== -1) {
-      sessions[sessionIndex].destroy();
-      sessions.splice(sessionIndex, 1);
+      const [session] = sessions.splice(sessionIndex, 1);
+      await session.destroy();
     }
   } catch (err) {
     logger.error(`removeWbot | Error: ${err}`);
@@ -112,7 +112,10 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
 
       wbot.id = whatsapp.id;
 
-      wbot.initialize();
+      wbot.initialize().catch(err => {
+        logger.error(`initWbot initialize error | Error: ${err}`);
+        reject(new Error("Error starting whatsapp session."));
+      });
 
       wbot.on("qr", async qr => {
         if (whatsapp.status === "CONNECTED") return;
@@ -201,6 +204,7 @@ export const initWbot = async (whatsapp: Whatsapp): Promise<Session> => {
       });
     } catch (err) {
       logger.error(`initWbot error | Error: ${err}`);
+      reject(new Error("Error starting whatsapp session."));
     }
   });
 };
