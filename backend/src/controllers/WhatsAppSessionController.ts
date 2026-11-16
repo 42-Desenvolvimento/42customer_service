@@ -60,7 +60,7 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
       await wbot
         .logout()
         .catch(error => logger.error("Erro ao fazer logout da conexão", error)); // --> fecha o client e conserva a sessão para reconexão (criar função desconectar)
-      removeWbot(channel.id);
+      await removeWbot(channel.id);
       // await wbot
       //   .destroy()
       //   .catch(error => logger.error("Erro ao destuir conexão", error)); // --> encerra a sessão e desconecta o bot do whatsapp, geando um novo QRCODE
